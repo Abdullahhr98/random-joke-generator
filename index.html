@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Random Joke Generator</title>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;color:#e5e7eb;background:#0f172a}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at top,#334155,#0f172a 58%)}main{width:min(760px,100%);background:#111827eF;border:1px solid #475569;border-radius:24px;padding:28px;box-shadow:0 24px 80px #0008}h1{margin:0 0 8px;font-size:clamp(2rem,6vw,3.5rem)}.sub{margin:0 0 24px;color:#94a3b8}.controls,.actions{display:flex;gap:10px;flex-wrap:wrap}select,button{font:inherit;border-radius:12px;padding:11px 14px;border:1px solid #475569}select{flex:1;min-width:180px;background:#1e293b;color:#fff}button{background:#38bdf8;color:#082f49;font-weight:700;cursor:pointer}button.secondary{background:#1e293b;color:#e2e8f0}button:hover{filter:brightness(1.12)}.card{margin:22px 0;padding:28px;min-height:220px;display:flex;flex-direction:column;justify-content:center;border-radius:18px;background:linear-gradient(135deg,#1e293b,#172554);border:1px solid #475569}.tag{color:#7dd3fc;font-size:.8rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.joke{font-size:clamp(1.25rem,3vw,2rem);line-height:1.6;margin:15px 0}.status{color:#94a3b8;font-size:.9rem}.error{color:#fca5a5;margin-top:12px}.favorites{margin-top:28px}.favorites h2{font-size:1.2rem}.favorite{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #334155}.favorite span{line-height:1.5}.remove{padding:7px 10px;background:#3f1d2e;color:#fecdd3;border-color:#7f1d1d}@media(max-width:560px){main{padding:20px}.card{padding:22px}.actions button{flex:1}}
+</style>
+</head>
+<body>
+<main>
+<h1>😂 Random Joke Generator</h1><p class="sub">Fetch a fresh joke from an external API, copy it, share it, or save it for later.</p>
+<div class="controls"><select id="category" aria-label="Joke category"><option value="Any">Any category</option><option>Programming</option><option>Misc</option><option>Dark</option><option>Pun</option><option>Spooky</option><option>Christmas</option></select><button id="newJoke">New joke</button></div>
+<section class="card"><div class="tag" id="type">Loading</div><p class="joke" id="joke">Fetching a joke…</p><div class="actions"><button class="secondary" id="copy">Copy</button><button class="secondary" id="share">Share</button><button class="secondary" id="save">♡ Save favorite</button></div><div class="status" id="status">Ready</div><div class="error" id="error" role="alert"></div></section>
+<section class="favorites"><h2>Saved favorites</h2><div id="favorites"></div></section>
+</main>
+<script>
+const $=s=>document.querySelector(s), key='joke-favorites';let current=null;
+const favorites=()=>JSON.parse(localStorage.getItem(key)||'[]');
+function setFavorites(v){localStorage.setItem(key,JSON.stringify(v));renderFavorites()}
+function renderFavorites(){const list=favorites();$('#favorites').innerHTML=list.length?list.map((j,i)=>`<div class="favorite"><span>${esc(j)}</span><button class="remove" data-i="${i}">Remove</button></div>`).join(''):'<p class="status">No favorites yet.</p>'}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function loadJoke(){const category=$('#category').value;$('#status').textContent='Loading…';$('#error').textContent='';$('#newJoke').disabled=true;try{const r=await fetch(`https://v2.jokeapi.dev/joke/${category}?type=single&safe-mode`);if(!r.ok)throw Error('API request failed');const d=await r.json();if(d.error)throw Error(d.message||'No joke found');current=d.joke;$('#type').textContent=d.category||'JOKE';$('#joke').textContent=current;$('#status').textContent='Ready'}catch(e){$('#type').textContent='ERROR';$('#joke').textContent='Unable to load a joke.';$('#error').textContent=e.message}finally{$('#newJoke').disabled=false}}
+$('#newJoke').onclick=loadJoke;$('#category').onchange=loadJoke;$('#copy').onclick=async()=>{if(!current)return;await navigator.clipboard.writeText(current);$('#status').textContent='Copied to clipboard'};$('#share').onclick=async()=>{if(!current)return;if(navigator.share)await navigator.share({title:'Random joke',text:current});else await navigator.clipboard.writeText(current);$('#status').textContent='Shared'};$('#save').onclick=()=>{if(current&&!favorites().includes(current))setFavorites([...favorites(),current]);$('#status').textContent='Saved to favorites'};$('#favorites').onclick=e=>{if(e.target.dataset.i!==undefined){const a=favorites();a.splice(+e.target.dataset.i,1);setFavorites(a)}};renderFavorites();loadJoke();
+</script>
+</body>
+</html>
